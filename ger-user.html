@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+       <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.14/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+    <div class="grid-container">
+        <div class="grid-item1">
+            <img class="logoh" src="https://i.im.ge/2024/04/04/WEcTRc.logo-sem-fundo.png" alt="Logo">
+            <div class="user-photo-container">
+                <img src="https://img.freepik.com/psd-gratuitas/ilustracao-3d-de-avatar-ou-perfil-humano_23-2150671142.jpg?size=338&ext=jpg" alt="User photo" class="user-photo">
+                 </div>
+            <div class="cinfo">
+                <p class="pinfo">Email do Usuário</p>
+            </div>
+            <nav class="menu">    
+                <ul class="menu">    
+                    <li class="btnmenu"><a class="a2" href="ger-user.html">USUÁRIOS</a></li>
+                    <li class="btnmenu"><a class="a2" href="ger-rot.html">ROTAS</a></li>              
+                    <li class="btnmenu"><a class="a2" href="index.html">SAIR</a></li>
+                </ul>   
+            </nav>            
+        </div>
+      
+        <div class="grid-item2">
+            <h1 class="arger">Área de Gerenciamento de Usuários</h1>
+            <div class="boxtab">
+            <div class="cabetab">
+                    <p class="pcabe">  
+                      <button id="gePdf" onclick="generatePDF()">Gerar PDF</button>
+                        <input type="text" name="pesquisa_por_nome" id="pesNome" placeholder="Pesquisa por nome">
+                        <button id="btnPesNome"><i class="fas fa-search"></i> Pesquisa</button>
+                    </p>
+                    <p class="pcabe">
+                        <input type="text" name="pesquisa_por_cpf" id="pesCpf" placeholder="Pesquisa por CPF">
+                        <button id="btnPesCpf"><i class="fas fa-search"></i> Pesquisa</button>
+                    </p>
+                </div>
+                <div class="scrollable-table-container">
+                    <table id="tab12" class="table table-dark">
+                        <thead>
+                            <tr>
+                                
+                                <th>CPF</th>
+                                <th>Email</th>
+                                <th>Rota</th>
+                                <th>Nome</th>                                
+                                <th>confirmação</th>
+                                <th>Documento</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody1"></tbody>
+                    </table>
+                </div>
+                
+            </div>
+                <div id="editPopup" class="popup">                
+                <div class="popup-content">
+                    <img class="logohpop" src="https://i.im.ge/2024/04/04/WEcTRc.logo-sem-fundo.png" alt="Logo Popup">
+                    <input type="hidden" id="editKey">
+                    <input type="text" class="editpop" id="editCpf" placeholder="Novo CPF">
+                    <input type="text" class="editpop" id="editEmail" placeholder="Novo Email">
+                    <input type="text" class="editpop" id="editroute" placeholder="Nova rota">
+                    <input type="text" class="editpop" id="editNome" placeholder="Novo Nome">
+                    <input type="text" class="editpop" id="editconfirmation" placeholder="confirmação">
+                                
+                    <button id="saveButton" onclick="saveChanges()">Salvar</button>
+                    <button id="cancelButton" onclick="closeEditPopup()">Cancelar</button>
+                </div>
+            </div>
+    <script>
+            const firebaseConfig = {
+                apiKey: "AIzaSyChwMJS0p4pwi9fL-edQEkOhiSupHURjL4",
+                authDomain: "gloriamobi-5a5bf.firebaseapp.com",
+                databaseURL: "https://gloriamobi-5a5bf-default-rtdb.firebaseio.com",
+                projectId: "gloriamobi-5a5bf",
+                storageBucket: "gloriamobi-5a5bf.appspot.com",
+                messagingSenderId: "94268964690",
+                appId: "1:94268964690:web:d7809308d1a73b555a848b",
+                measurementId: "G-Y7M27KHFLD"
+            };
+
+            const app = firebase.initializeApp(firebaseConfig);
+            const auth = firebase.auth();
+            const db = firebase.firestore();
+            const storage = firebase.storage();
+
+           
+            document.getElementById('btnPesNome').addEventListener('click', () => {
+                const pesquisaNome = document.getElementById('pesNome').value.trim();
+                if (pesquisaNome !== '') {
+                    searchByField('name', pesquisaNome);
+                }
+            });
+
+            document.getElementById('btnPesCpf').addEventListener('click', () => {
+                const pesquisaCpf = document.getElementById('pesCpf').value.trim();
+                if (pesquisaCpf !== '') {
+                    searchByField('cpf', pesquisaCpf);
+                }
+            });
+            
+            document.getElementById('pesNome').addEventListener('input', () => {
+                if (document.getElementById('pesNome').value.trim() === '') {
+                    getAllDataOnce();
+                }
+            });
+
+            document.getElementById('pesCpf').addEventListener('input', () => {
+                if (document.getElementById('pesCpf').value.trim() === '') {
+                    getAllDataOnce();
+                }
+            });
+
+            function searchByField(field, value) {
+    db.collection("users").where(field, "==", value).get()
+        .then(querySnapshot => {
+            const users = [];
+            querySnapshot.forEach(doc => {
+                const user = doc.data();
+                user.key = doc.id;
+                users.push(user);
+            });
+            addAllItemsToTable(users);
+        })
+        .catch(error => {
+            console.error("Erro ao obter os dados: ", error);
+        });
+}
+       function getAllDataOnce() {
+                db.collection("users").get()
+                    .then(querySnapshot => {
+                        const users = [];
+                        querySnapshot.forEach(doc => {
+                            const user = doc.data();
+                            user.key = doc.id;
+                            users.push(user);
+                        });
+                        addAllItemsToTable(users);
+                    })
+                    .catch(error => {
+                        console.error("Erro ao obter os dados: ", error);
+                    });
+            }
+
+            function addAllItemsToTable(users) {
+                const tbody = document.getElementById('tbody1');
+                tbody.innerHTML = ''; 
+                tbody.innerHTML = ''; 
+                users.forEach(user => {
+                    addItemToTable(user);
+                });
+            }
+            function addItemToTable(user) {
+            const tbody = document.getElementById('tbody1');
+            const row = tbody.insertRow();
+            const cellCpf = row.insertCell(0);
+            const cellEmail = row.insertCell(1);
+            const cellroute = row.insertCell(2);
+            const cellName = row.insertCell(3);    
+            const cellconfirmation = row.insertCell(4);
+            const cellDocumento = row.insertCell(5);
+            const cellAcoes = row.insertCell(6);
+            
+            cellCpf.innerText = user.cpf;
+            cellEmail.innerText = user.email;
+            cellroute.innerText = user.route;
+            cellName.innerText = user.name;  
+            cellconfirmation.innerText = user.confirmation
+            cellDocumento.innerHTML = `<button onclick="showDocument('${user.key}')">Ver Documento</button>`;          
+            cellAcoes.innerHTML = `<button onclick="editUser('${user.key}')">Editar</button><button onclick="deleteUser('${user.key}')">Deletar</button>`; 
+
+}
+
+function showDocument(key) {
+      db.collection("users").doc(key).get().then(doc => {
+        if (doc.exists) {
+            const user = doc.data();
+            const imageUrl = user.documentPhoto;
+            console.log("Documento URL:", imageUrl); 
+            if (imageUrl) {
+                const modal = document.createElement('div');
+                modal.classList.add('modal');
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <span class="close-button">&times;</span>
+                        <img src="${imageUrl}" alt="Documento"> 
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                modal.querySelector('.close-button').onclick = () => {
+                    document.body.removeChild(modal);
+                };                
+                modal.onclick = (event) => {
+                    if (event.target === modal) {
+                        document.body.removeChild(modal);
+                    }
+                };
+            } else {
+                console.error("URL do documento está undefined");
+            }
+        } else {
+            console.error("Documento não encontrado");
+        }
+    }).catch(error => {
+        console.error("Erro ao obter o documento: ", error);
+    });
+}
+
+
+         async function generatePDF() {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();               
+                const headers = [["CPF", "Email", "Rota", "Name",  "Confirmação"]];
+                const data = [];
+                document.querySelectorAll('#tbody1 tr').forEach(row => {
+                    const rowData = [];
+                    row.querySelectorAll('td').forEach((cell, index) => {
+                        if (index > 0 && index < 9) { 
+                            rowData.push(cell.innerText);
+                        }
+                    });
+                    data.push(rowData);
+                });
+                doc.autoTable({
+                    head: headers,
+                    body: data
+                });
+                doc.save("users.pdf"); 
+            }
+            function editUser(key) {
+             db.collection("users").doc(key).get().then(doc => {
+             if (doc.exists) {
+            const user = doc.data();
+            document.getElementById('editKey').value = key;
+            document.getElementById('editCpf').value = user.cpf;
+            document.getElementById('editEmail').value = user.email;
+            document.getElementById('editroute').value = user.route;
+            document.getElementById('editNome').value = user.name;
+            document.getElementById('editconfirmation').value = user.confirmation;            
+            document.getElementById('editPopup').style.display = 'block';
+        } else {
+            console.error("Documento não encontrado");
+        }
+    }).catch(error => {
+        console.error("Erro ao obter o documento: ", error);
+    });
+}           
+         function closeEditPopup() {
+                document.getElementById('editPopup').style.display = 'none';
+            }
+        function saveChanges() {
+            const key = document.getElementById('editKey').value;
+            const updatedData = {
+            cpf: document.getElementById('editCpf').value,
+            email: document.getElementById('editEmail').value,
+            route: document.getElementById('editroute').value,
+            name: document.getElementById('editNome').value,
+            confirmation: document.getElementById('editconfirmation').value
+        };
+
+        db.collection("users").doc(key).update(updatedData).then(() => {
+            closeEditPopup();
+            getAllDataOnce();
+        }).catch(error => {
+            console.error("Erro ao salvar as mudanças: ", error);
+        });
+    }
+
+            function deleteUser(key) {
+                db.collection("users").doc(key).delete().then(() => {
+                    getAllDataOnce();
+                }).catch(error => {
+                    console.error("Erro ao deletar usuário: ", error);
+                });
+            }
+
+
+        firebase.auth().onAuthStateChanged(user => {
+            if (user) {
+                const userName = user.displayName; 
+                const userEmail = user.email; 
+                const userInfoElement = document.querySelector('.cinfo');
+                userInfoElement.innerHTML = `
+                <p class="pinfo">${userEmail}</p>
+                `;
+            } else {
+            }
+        });
+
+            window.onload = function() {
+                getAllDataOnce();
+            };
+
+           
+            
+
+                    </script>
+    
+    
+                    <script src="js/abrirpopup.js"></script>
+                </div>
+</body>
+</html>
